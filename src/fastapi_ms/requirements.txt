@@ -1,0 +1,13 @@
+requests~=2.28.2
+cryptography~=38.0.3
+fastapi~=0.89.1
+motor~=3.1.1
+uvicorn~=0.20.0
+pytz~=2022.7.1
+twitchAPI~=3.5.2
+matplotlib~=3.6.3
+numpy~=1.24.2
+envparse~=0.2.0
+pydantic~=1.10.4
+pydantic[dotenv]
+pika

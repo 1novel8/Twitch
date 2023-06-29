@@ -1,0 +1,98 @@
+version: '3.9'
+
+services:
+  app:
+    container_name: "app"
+    hostname: fastapi_host
+    image: app
+    environment:
+      - MONGODB_URL=mongodb://mongo_db/twitch_db
+    build:
+      context: src/fastapi_ms
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo_db
+      - redis
+
+  celery:
+    restart: always
+    hostname: celery_host
+    build:
+      context: src/django_ms
+      dockerfile: Dockerfile
+    command:  bash -c "cd django_proj && python manage.py migrate django_celery_results &&  celery -A django_proj worker -l info -P threads"
+    environment:
+      - CELERY_BROKER_URL = "redis//:redis:6379"
+    depends_on:
+      - redis
+
+  celery_beat:
+    restart: always
+    hostname: celery_beat_host
+    build:
+      context: src/django_ms
+      dockerfile: Dockerfile
+    command:  bash -c "cd django_proj && celery -A django_proj beat -l info"
+    environment:
+      - CELERY_BROKER_URL = "redis//:redis:6379"
+    depends_on:
+      - redis
+
+
+  flower:
+    restart: always
+    hostname: flower_host
+    build:
+      context: src/django_ms
+      dockerfile: Dockerfile
+    command: bash -c "cd django_proj && celery -A django_proj flower -l info"
+    depends_on:
+      - redis
+    ports:
+      - '5555:5555'
+
+  redis:
+    image: redis
+    hostname: redis_host
+    restart: always
+    ports:
+      - "6379:6379"
+
+  mongo_db:
+    image: 'mongo:latest'
+    container_name: "mongo_db"
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data
+
+  django:
+    build:
+      context: src/django_ms
+      dockerfile: Dockerfile
+    command: bash -c "python django_proj/manage.py makemigrations &&
+      python django_proj/manage.py migrate &&
+      python django_proj/manage.py runserver 0.0.0.0:8000"
+    expose:
+      - 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - app
+
+#  rabbitmq:
+#    image: rabbitmq:3.10.7-management
+#    hostname: rabbitmq
+#    restart: always
+#    environment:
+#      - RABBITMQ_DEFAULT_USER=rmuser
+#      - RABBITMQ_DEFAULT_PASS=rmpassword
+#      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log_levels [{connection,error},{default,error}] disk_free_limit 214748367
+#    ports:
+#      - "15672:15672"
+#      - "5672:5672"
+
+volumes:
+  mongo_data:

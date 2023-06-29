@@ -1,0 +1,7 @@
+Django
+redis
+celery
+requests
+flower
+django-celery-results
+django-redis
